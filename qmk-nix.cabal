@@ -1,0 +1,65 @@
+cabal-version:      3.0
+name:               qmk-nix
+version:            0.1.0.0
+synopsis:           Declarative QMK firmware + macOS layer-switching for Keychron Q0 Max
+author:             cognivore
+maintainer:         jm@memorici.de
+build-type:         Simple
+extra-source-files: README.md
+
+common deps
+    default-language: GHC2021
+    default-extensions:
+        OverloadedStrings
+        LambdaCase
+        StrictData
+        DerivingStrategies
+    ghc-options: -Wall -Wcompat -Widentities -Wredundant-constraints
+
+library
+    import:           deps
+    hs-source-dirs:   src
+    exposed-modules:
+        QmkNix.LayerLayout
+        QmkNix.Keycodes
+        QmkNix.Positions.Q0MaxEncoder
+        QmkNix.Types
+        QmkNix.Plugins.Default
+        QmkNix.Plugins.Categories.DesignTools
+        QmkNix.Plugins.Apps.Illustrator
+        QmkNix.Plugins.Registry
+        QmkNix.Resolve
+        QmkNix.Render.Common
+        QmkNix.Render.KeymapC
+        QmkNix.Render.LayersH
+        QmkNix.Render.RulesMk
+        QmkNix.Render.InitLua
+    build-depends:
+        , base       >=4.18 && <5
+        , containers >=0.6
+        , text       >=2.0
+
+executable qmk-nix-codegen
+    import:           deps
+    main-is:          Codegen.hs
+    hs-source-dirs:   app
+    build-depends:
+        , base
+        , qmk-nix
+        , optparse-applicative >=0.18
+        , text                 >=2.0
+        , directory            >=1.3
+        , filepath             >=1.4
+
+test-suite qmk-nix-test
+    import:           deps
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   tests
+    build-depends:
+        , base
+        , qmk-nix
+        , bytestring   >=0.11
+        , tasty        >=1.4
+        , tasty-golden >=2.3
+        , text         >=2.0
