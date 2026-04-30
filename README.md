@@ -240,4 +240,4 @@ qmk-nix/
 
 ## License
 
-TBD by upstream user. The lifted upstream Keychron BASE/FN keymap retains its original GPL-2.0+ via the firmware-stub C copies; the Haskell DSL/codegen is the user's to license as they wish.
+WTFPL
