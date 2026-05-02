@@ -19,6 +19,8 @@
         haskellPkgs = pkgs.haskellPackages;
         qmk-nix-codegen = haskellPkgs.callCabal2nix "qmk-nix" ./. { };
 
+        cogcast-q0 = pkgs.callPackage ./host/cogcast-q0/nix/package.nix { };
+
         qmkNixLib = import ./nix/lib.nix {
           inherit pkgs qmk-nix-codegen;
           qmk-firmware-src = qmk-firmware-keychron;
@@ -34,15 +36,51 @@
           firmware = firmware-illustrator;
           name     = "flash-illustrator";
         };
+
+        firmware-cogcast = qmkNixLib.mkFirmware {
+          name    = "firmware-cogcast";
+          plugins = [ ];
+          cogcast = true;
+        };
+
+        flash-cogcast = qmkNixLib.mkFlashScript {
+          firmware = firmware-cogcast;
+          name     = "flash-cogcast";
+        };
+
+        firmware-cogcast-illustrator = qmkNixLib.mkFirmware {
+          name    = "firmware-cogcast-illustrator";
+          plugins = [ "illustrator" ];
+          cogcast = true;
+        };
+
+        flash-cogcast-illustrator = qmkNixLib.mkFlashScript {
+          firmware = firmware-cogcast-illustrator;
+          name     = "flash-cogcast-illustrator";
+        };
       in {
         packages = {
           default = qmk-nix-codegen;
-          inherit qmk-nix-codegen firmware-illustrator;
+          inherit qmk-nix-codegen
+                  cogcast-q0
+                  firmware-illustrator
+                  firmware-cogcast
+                  firmware-cogcast-illustrator;
         };
 
         apps.flash-illustrator = {
           type = "app";
           program = "${flash-illustrator}/bin/flash-illustrator";
+        };
+
+        apps.flash-cogcast = {
+          type = "app";
+          program = "${flash-cogcast}/bin/flash-cogcast";
+        };
+
+        apps.flash-cogcast-illustrator = {
+          type = "app";
+          program = "${flash-cogcast-illustrator}/bin/flash-cogcast-illustrator";
         };
 
         devShells.default = haskellPkgs.shellFor {
@@ -59,5 +97,9 @@
         # Per-system lib for downstream consumers (e.g. nixvana) wanting to
         # compose their own plugin set: `qmk-nix.lib.${system}.mkFirmware { plugins = [...]; }`.
         lib = qmkNixLib;
-      });
+      }) // {
+        # home-manager module for the cogcast-q0 host bridge daemon.
+        homeManagerModules.cogcast-q0 = import ./nix/home-manager-cogcast-q0.nix self;
+        homeManagerModules.default    = import ./nix/home-manager-cogcast-q0.nix self;
+      };
 }

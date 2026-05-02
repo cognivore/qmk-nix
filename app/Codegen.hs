@@ -9,13 +9,14 @@ import System.Exit (exitFailure)
 import System.FilePath ((</>))
 import System.IO (hPutStrLn, stderr)
 
+import QmkNix.Plugins.Cogcast (CogcastConfig, allCogcast, defaultCogcast)
 import QmkNix.Plugins.Default (defaultLayer)
 import QmkNix.Plugins.Registry (availableApps, lookupApp)
 import QmkNix.Render.InitLua (renderInitLua)
 import QmkNix.Render.KeymapC (renderKeymapC)
 import QmkNix.Render.LayersH (renderLayersH)
 import QmkNix.Render.RulesMk (renderRulesMk)
-import QmkNix.Resolve (resolve)
+import QmkNix.Resolve (resolveWith)
 import QmkNix.Types (AppLayer)
 
 data Cmd
@@ -24,6 +25,7 @@ data Cmd
 
 data GenOpts = GenOpts
   { genPlugins :: [Text]
+  , genCogcast :: Bool
   , genOutDir  :: FilePath
   }
 
@@ -40,6 +42,9 @@ genOptsParser = GenOpts
         <> short 'p'
         <> metavar "NAME"
         <> help "App plugin to include (repeatable). Use 'list-plugins' to discover names."))
+  <*> switch
+        (  long "cogcast"
+        <> help "Enable Cogcast: convert all 18 user-available BASE positions into slot keys reporting to a host daemon over RAW HID.")
   <*> strOption
         (  long "out"
         <> short 'o'
@@ -58,7 +63,12 @@ main = do
 doGenerate :: GenOpts -> IO ()
 doGenerate g = do
   apps <- mapM resolveOne (genPlugins g)
-  case resolve defaultLayer apps of
+  let cogcast = if genCogcast g then allCogcast else defaultCogcast
+  emit cogcast apps g
+
+emit :: CogcastConfig -> [AppLayer] -> GenOpts -> IO ()
+emit cogcast apps g =
+  case resolveWith defaultLayer apps cogcast of
     Left err -> do
       hPutStrLn stderr ("resolve error: " ++ show err)
       exitFailure

@@ -24,6 +24,7 @@ library
         QmkNix.Keycodes
         QmkNix.Positions.Q0MaxEncoder
         QmkNix.Types
+        QmkNix.Plugins.Cogcast
         QmkNix.Plugins.Default
         QmkNix.Plugins.Categories.DesignTools
         QmkNix.Plugins.Apps.Illustrator

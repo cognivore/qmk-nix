@@ -9,6 +9,10 @@
 #include "rgb_matrix.h"
 #include "qmk_nix_layers.h"
 
+#ifdef QMK_NIX_COGCAST_ENABLED
+#include "qmk_nix_slots.h"
+#endif
+
 typedef struct { uint8_t led; uint8_t r; uint8_t g; uint8_t b; } qmk_nix_led_t;
 typedef struct { const qmk_nix_led_t *leds; uint8_t count; } qmk_nix_led_set_t;
 
@@ -25,14 +29,25 @@ static int8_t highest_active_app_layer(void) {
 
 bool rgb_matrix_indicators_user(void) {
     int8_t app = highest_active_app_layer();
-    if (app < 0) return false;
+    if (app >= 0) {
+        rgb_matrix_set_color_all(0, 0, 0);
 
-    rgb_matrix_set_color_all(0, 0, 0);
-
-    const qmk_nix_led_set_t *set = &qmk_nix_indicators_per_layer[app];
-    for (uint8_t i = 0; i < set->count; i++) {
-        const qmk_nix_led_t *e = &set->leds[i];
-        rgb_matrix_set_color(e->led, e->r, e->g, e->b);
+        const qmk_nix_led_set_t *set = &qmk_nix_indicators_per_layer[app];
+        for (uint8_t i = 0; i < set->count; i++) {
+            const qmk_nix_led_t *e = &set->leds[i];
+            rgb_matrix_set_color(e->led, e->r, e->g, e->b);
+        }
+        return false;  // allow keychron_common kb-level indicators to overlay
     }
-    return false;  // allow keychron_common kb-level indicators to overlay
+
+#ifdef QMK_NIX_COGCAST_ENABLED
+    // Cogcast mode: kill the stock rainbow animation entirely. The keyboard
+    // is now an agentic indicator surface — slot LEDs render the agent
+    // states (red/yellow/green/cyan/magenta), every other key stays dark.
+    // Reserved-key LEDs (M1..M5, PMns, PPls, PEnt) are intentionally off.
+    rgb_matrix_set_color_all(0, 0, 0);
+    qmk_nix_slots_apply();
+#endif
+
+    return false;
 }

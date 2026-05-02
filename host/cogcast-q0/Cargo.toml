@@ -1,0 +1,24 @@
+[package]
+name = "cogcast-q0"
+version = "0.1.0"
+edition = "2021"
+description = "RAW HID bridge between clawed-cogworker (cogworkd) and a Keychron Q0 Max running cogcast firmware"
+
+[[bin]]
+name = "cogcast-q0"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+bytes = "1"
+clap = { version = "4", features = ["derive", "env"] }
+eventsource-stream = "0.2"
+futures = "0.3"
+hidapi = "2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

@@ -6,8 +6,10 @@ let
   keymapName = "qmknix";
 
   # Build a Q0 Max firmware .bin against the pinned Keychron QMK fork, with
-  # the chosen plugins compiled into the keymap.
-  mkFirmware = { name ? "q0-max-firmware", plugins }:
+  # the chosen plugins compiled into the keymap. `cogcast = true` turns the
+  # 18 user-available BASE positions into slot keys reporting to the host
+  # via raw HID.
+  mkFirmware = { name ? "q0-max-firmware", plugins, cogcast ? false }:
     pkgs.stdenv.mkDerivation {
       pname = name;
       version = "0.1.0";
@@ -54,6 +56,7 @@ let
         mkdir -p "$GENERATED"
         ${qmk-nix-codegen}/bin/qmk-nix-codegen gen \
           ${lib.concatMapStringsSep " " (p: "--plugin ${lib.escapeShellArg p}") plugins} \
+          ${lib.optionalString cogcast "--cogcast"} \
           --out "$GENERATED"
 
         # Drop the firmware-relevant files plus static support files in-tree.
@@ -68,6 +71,11 @@ let
         cp "$src/qmk_nix_raw_hid.c"           "$KEYMAP_DIR/qmk_nix_raw_hid.c"
         cp "$src/qmk_nix_indicators.c"        "$KEYMAP_DIR/qmk_nix_indicators.c"
         cp "$src/qmk_nix_wireless_fallback.c" "$KEYMAP_DIR/qmk_nix_wireless_fallback.c"
+        # Cogcast files: header always copied (cheap, gated by #ifdef in the
+        # sibling .c files); slots.c only added to SRC when cogcast is enabled
+        # (handled by Render.RulesMk).
+        cp "$src/qmk_nix_slots.h"             "$KEYMAP_DIR/qmk_nix_slots.h"
+        cp "$src/qmk_nix_slots.c"             "$KEYMAP_DIR/qmk_nix_slots.c"
 
         export QMK_HOME="$PWD/qmk"
         cd qmk

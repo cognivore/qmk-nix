@@ -10,12 +10,22 @@
 #include "quantum.h"
 #include "qmk_nix_layers.h"
 
+#ifdef QMK_NIX_COGCAST_ENABLED
+#include "qmk_nix_slots.h"
+#endif
+
 extern const layer_state_t qmk_nix_app_masks[];
 
 // Bits CAT_FIRST..APP_LAST (1..30): everything except BASE (0) and FN (31).
 #define QMK_NIX_DAEMON_BITS ((layer_state_t)0x7FFFFFFEU)
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+#ifdef QMK_NIX_COGCAST_ENABLED
+    // Slot keypress: the slot module sends a raw-HID report and consumes
+    // the event. Returns true (propagate) for non-slot keycodes.
+    if (!qmk_nix_slots_process(keycode, record)) return false;
+#endif
+
     if (keycode != QMK_NIX_CYCLE_APP) return true;
     if (!record->event.pressed) return false;
 

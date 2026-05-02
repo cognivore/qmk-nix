@@ -3,6 +3,7 @@ module QmkNix.Resolve
   , ResolvedConfig (..)
   , ResolvedApp (..)
   , resolve
+  , resolveWith
   , layerSymbol
   , camelToUpperSnake
   ) where
@@ -19,6 +20,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 
 import QmkNix.LayerLayout (appRange, baseLayer, categoryRange, fnLayer)
+import QmkNix.Plugins.Cogcast (CogcastConfig, defaultCogcast)
 import QmkNix.Positions.Q0MaxEncoder (Position (Knob))
 import QmkNix.Types
 
@@ -41,10 +43,19 @@ data ResolvedConfig = ResolvedConfig
   , rcApps       :: [ResolvedApp]
   , rcFnIndex    :: Int
   , rcBaseIndex  :: Int
+  , rcCogcast    :: CogcastConfig
   } deriving (Show, Eq)
 
+-- Backwards-compatible: cogcast disabled.
 resolve :: DefaultLayer -> [AppLayer] -> Either ResolveError ResolvedConfig
-resolve def apps = do
+resolve def apps = resolveWith def apps defaultCogcast
+
+resolveWith
+  :: DefaultLayer
+  -> [AppLayer]
+  -> CogcastConfig
+  -> Either ResolveError ResolvedConfig
+resolveWith def apps cogcast = do
   mapM_ validateLeds apps
 
   let sortedApps = sortBy (compare `on` appName) apps
@@ -75,6 +86,7 @@ resolve def apps = do
     , rcApps       = resolvedApps
     , rcFnIndex    = fnLayer
     , rcBaseIndex  = baseLayer
+    , rcCogcast    = cogcast
     }
   where
     validateLeds app

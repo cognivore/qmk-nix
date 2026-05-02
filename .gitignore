@@ -6,3 +6,7 @@ dist-newstyle/
 result
 result-*
 .direnv/
+
+# Rust target dirs (cogcast-q0 host bridge)
+target/
+host/*/target/

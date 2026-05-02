@@ -2,11 +2,12 @@ module QmkNix.Render.KeymapC (renderKeymapC) where
 
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as M
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
 
 import QmkNix.Keycodes
+import QmkNix.Plugins.Cogcast (CogcastConfig (..), slotKeycodeFor)
 import QmkNix.Positions.Q0MaxEncoder (Position, layoutRows, ledIndex)
 import QmkNix.Render.Common
 import QmkNix.Resolve
@@ -47,12 +48,24 @@ renderKeymapC rc = T.unlines $
   where
     layers :: [Layer]
     layers =
-         [ Layer "LAYER_BASE" (baseKeymap (rcDefault rc)) (baseEncoder (rcDefault rc)) ]
+         [ Layer "LAYER_BASE" (applyCogcast (rcCogcast rc) (baseKeymap (rcDefault rc))) (baseEncoder (rcDefault rc)) ]
       ++ [ Layer (layerSymbol (catName c)) (catKeymap c) (catEncoder c)
          | (_, c) <- rcCategories rc ]
       ++ [ Layer (layerSymbol (appName (raApp ra))) (appKeymap (raApp ra)) (appEncoder (raApp ra))
          | ra <- rcApps rc ]
       ++ [ Layer "LAYER_FN" (fnKeymap (rcDefault rc)) (fnEncoder (rcDefault rc)) ]
+
+    -- Substitute the BASE keycode for slot positions with QMK_NIX_SLOT_KEY_<led>.
+    -- Identity when cogcast is disabled.
+    applyCogcast :: CogcastConfig -> Map Position Keycode -> Map Position Keycode
+    applyCogcast cc km
+      | ccEnabled cc = M.mapWithKey replace km
+      | otherwise    = km
+      where
+        slotSet = ccSlotKeys cc
+        replace pos orig
+          | pos `elem` slotSet = fromMaybe orig (slotKeycodeFor pos)
+          | otherwise          = orig
 
 renderKeymapEntry :: Layer -> [Text]
 renderKeymapEntry (Layer sym km _) =
