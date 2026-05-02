@@ -26,6 +26,7 @@ use tracing::{debug, error, info, warn};
 
 use crate::config::SlotsConfig;
 use crate::events::{SlotEvent, SlotRow, SlotState, state_color};
+use crate::focus::{self, Modifier};
 use crate::hid::Hid;
 
 #[derive(Clone)]
@@ -35,10 +36,16 @@ pub struct Bridge {
     pub hid: Arc<Mutex<Hid>>,
     pub http: reqwest::Client,
     pub state: Arc<Mutex<HashMap<u8, SlotState>>>,
+    pub workspace_mod: Modifier,
 }
 
 impl Bridge {
-    pub fn new(daemon: String, config: SlotsConfig, hid: Hid) -> Self {
+    pub fn new(
+        daemon: String,
+        config: SlotsConfig,
+        hid: Hid,
+        workspace_mod: Modifier,
+    ) -> Self {
         Self {
             daemon: daemon.trim_end_matches('/').to_string(),
             config: Arc::new(config),
@@ -47,6 +54,7 @@ impl Bridge {
                 .build()
                 .expect("reqwest client"),
             state: Arc::new(Mutex::new(HashMap::new())),
+            workspace_mod,
         }
     }
 
@@ -222,6 +230,18 @@ impl Bridge {
                 debug!(led_idx, "key press for unconfigured led");
                 continue;
             };
+
+            // Workspace switch first, so the user is already looking at the
+            // right workspace when the run kicks off. Failures here are
+            // surfaced but never block the trigger.
+            if let Some(ws) = entry.workspace.as_deref() {
+                if let Err(e) = focus::focus_workspace(self.workspace_mod, ws).await {
+                    warn!(slot = entry.id, workspace = %ws, error = %e, "workspace focus failed");
+                } else {
+                    debug!(slot = entry.id, workspace = %ws, "focused workspace");
+                }
+            }
+
             let url = format!("{}/slots/{}/trigger", self.daemon, entry.id);
             match self.http.post(&url).send().await {
                 Ok(r) if r.status() == reqwest::StatusCode::ACCEPTED => {

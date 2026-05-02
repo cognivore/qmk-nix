@@ -14,6 +14,8 @@ struct RawSlot {
     key: String,
     #[serde(default)]
     pipeline: Option<String>,
+    #[serde(default)]
+    workspace: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -27,6 +29,10 @@ pub struct SlotEntry {
     pub id: u8,
     pub key: String,
     pub led: u8,
+    /// Optional mcmonad/xmonad workspace name to focus on press, before
+    /// the trigger fires. The bridge sends this as a synthetic
+    /// `<modifier>+<single letter>` chord via osascript on macOS.
+    pub workspace: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -56,6 +62,7 @@ impl SlotsConfig {
                 id: r.id,
                 key: r.key.clone(),
                 led,
+                workspace: r.workspace.clone(),
             });
         }
         let by_id = entries.iter().cloned().map(|e| (e.id, e)).collect();

@@ -3,6 +3,7 @@
 mod bridge;
 mod config;
 mod events;
+mod focus;
 mod hid;
 mod keymap;
 
@@ -26,6 +27,12 @@ struct Cli {
     /// Path to slots.toml (used to map slot_id ↔ physical key ↔ LED).
     #[arg(long, env = "COGWORK_SLOTS_TOML", default_value = "slots.toml")]
     slots_toml: PathBuf,
+
+    /// Modifier the WM uses for workspace-switch chords. mcmonad's default
+    /// is Cmd on macOS; set to `option` if you've remapped modMask.
+    /// Accepts: cmd|ctrl|opt|shift.
+    #[arg(long, env = "COGCAST_WORKSPACE_MOD", default_value = "cmd")]
+    workspace_mod: String,
 }
 
 #[tokio::main]
@@ -38,7 +45,13 @@ async fn main() -> Result<()> {
         .init();
 
     let cli = Cli::parse();
-    info!(daemon = %cli.daemon, slots_toml = %cli.slots_toml.display(), "cogcast-q0 starting");
+    let workspace_mod = focus::Modifier::parse(&cli.workspace_mod)?;
+    info!(
+        daemon = %cli.daemon,
+        slots_toml = %cli.slots_toml.display(),
+        workspace_mod = ?workspace_mod,
+        "cogcast-q0 starting"
+    );
 
     // Restart on any failure (HID disconnect, daemon down, …) with a
     // generous backoff. Same shape as the SSE reconnect.
@@ -55,7 +68,7 @@ async fn main() -> Result<()> {
                 continue;
             }
         };
-        let bridge = bridge::Bridge::new(cli.daemon.clone(), cfg, hid);
+        let bridge = bridge::Bridge::new(cli.daemon.clone(), cfg, hid, workspace_mod);
         if let Err(e) = bridge.run().await {
             warn!(error = %e, "bridge exited; restarting in {:?}", backoff);
         }
