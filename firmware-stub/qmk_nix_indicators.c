@@ -40,12 +40,13 @@ bool rgb_matrix_indicators_user(void) {
         return false;  // allow keychron_common kb-level indicators to overlay
     }
 
-#ifdef QMK_NIX_COGCAST_ENABLED
-    // Cogcast mode: kill the stock rainbow animation entirely. The keyboard
-    // is now an agentic indicator surface — slot LEDs render the agent
-    // states (red/yellow/green/cyan/magenta), every other key stays dark.
-    // Reserved-key LEDs (M1..M5, PMns, PPls, PEnt) are intentionally off.
+    // No app active. Kill the stock rainbow — the bare numpad surface
+    // stays dark unless something has a reason to light it.
     rgb_matrix_set_color_all(0, 0, 0);
+
+#ifdef QMK_NIX_COGCAST_ENABLED
+    // Cogcast paints its slot indicators on top of the dark base, so the
+    // agentic surface remains visible.
     qmk_nix_slots_apply();
 #endif
 
